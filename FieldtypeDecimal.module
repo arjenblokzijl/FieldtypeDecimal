@@ -1,0 +1,178 @@
+<?php
+
+/**
+ * ProcessWire Decimal Fieldtype
+ *
+ * Field that stores a precision floating point number. See
+ * https://processwire.com/talk/topic/7542-development-fieldtypefloat-fieldtypedecimal/
+ *
+ * ProcessWire 2.x 
+ * 
+ */
+
+class FieldtypeDecimal extends Fieldtype
+{
+	public static function getModuleInfo()
+  {
+		return array(
+			'title'     => __('Decimal', __FILE__),
+			'summary'   => __('Field that stores a precision floating point (decimal) number', __FILE__),
+			'version'   => 100,
+      'requires'  => 'InputfieldDecimal',
+      'author'    => 'Sebastian Forsman',
+		);
+	}
+
+	public function ___getCompatibleFieldtypes(Field $field)
+  {
+		$fieldtypes = parent::___getCompatibleFieldtypes($field); 
+		foreach($fieldtypes as $type) {
+			if(	!$type instanceof FieldtypeInteger && 
+				  !$type instanceof FieldtypeFloat &&
+          !$type instanceof FieldtypeDecimal && 
+				  $type != 'FieldtypeText') {
+
+				$fieldtypes->remove($type); 
+			}
+		}
+		return $fieldtypes; 
+	}
+  
+  public function init()
+  {
+    // We need to hook field save to check if our database field is up to date
+    $this->addHookAfter('ProcessField::fieldSaved', function ($event) {
+      $field = $event->arguments(0); 
+      
+      if($field->type instanceof self)
+      {
+        // We could use $this inside here, if we could expect everybody to have PHP 5.4
+        $m = wire('modules')->get(__CLASS__);
+        
+        $result = $m->syncSchema($field); 
+        
+        // We just add a message if the database was actually modified
+        if($result === true)
+          $this->session->message("Database schema was updated");
+      }
+    });
+  }
+  
+  /**
+   * Checks if the table holding this field is up to date and updates it if needed 
+   *
+   */
+  public function syncSchema(Field $field)
+  {
+    // Get the configured field signature
+    $type = $this->getConfiguredType($field);
+    
+    // Compare the configured and active signatures
+    if(strcasecmp($type, $this->getActiveType($field)) != 0)
+    {
+      $database = $this->database;
+      $table = $field->getTable();
+      
+      $query = "ALTER TABLE `".$database->escapeTable($table)."` MODIFY data {$type} NOT NULL";
+      $database->query($query);
+      
+      return true;
+    }
+  }
+  
+  /**
+   * Returns the active type/signature of the field
+   *
+   * This means the fields' current definition in the database
+   *
+   */
+  public function getActiveType(Field $field)
+  {
+    $database = $this->database;
+    $table = $field->getTable();
+    
+    // We could use INFORMATION_SCHEMA too, but due it's (default) slowness nvm
+    $query = "SHOW FIELDS FROM `".$database->escapeTable($table)."` LIKE 'data'";
+    $result = $database->query($query);
+    
+    if(!$result->rowCount())
+      throw new Exception("Cannot determine the type of the field");
+      
+    $type = $result->fetchColumn(1); // Type
+    
+    return $type;
+  }
+  
+  /**
+   * Returns the type/signature of the field we should have based on the configuration
+   *
+   */
+  public function getConfiguredType(Field $field)
+  {
+    $digits = $field->digits;
+    $precision = $field->precision;
+    
+    if(!strlen($digits) or !strlen($precision))
+      throw new Exception("The field isn't configured properly");
+      
+    return "DECIMAL(".intval($digits).",".intval($precision).")"; // These should always be integers anyway
+  }
+  
+	public function sanitizeValue(Page $page, Field $field, $value)
+  {
+    // We accept the decimal separator as humans naturally write them
+    $value = str_replace(",",".",$value);
+    
+    // According to wire/core/Fieldtype.php:
+    // "If it can't be sanitized, it should be blanked."
+    // is_numeric() lets weird stuff through, but that's fine for now
+    if(!is_numeric($value))
+      $value = "";
+    
+    return $value;
+	}
+
+	public function getInputfield(Page $page, Field $field)
+  {
+	  $inputfield = $this->modules->get('InputfieldDecimal');
+		$inputfield->class = $this->className();
+    // TODO: Add total digits
+    $inputfield->digits = $field->digits; 
+		$inputfield->precision = $field->precision; 
+		return $inputfield; 
+	}
+
+	public function getDatabaseSchema(Field $field)
+  {
+		$schema = parent::getDatabaseSchema($field); 
+		$schema['data'] = 'DECIMAL(12,2) NOT NULL';
+		return $schema;
+	}
+  
+  public function ___getConfigInputfields(Field $field)
+  {
+		$inputfields = parent::___getConfigInputfields($field);
+
+		if(is_null($field->digits))
+      $field->digits = 12; 
+
+      $f = $this->modules->get('InputfieldInteger');
+		$f->attr('name', 'digits'); 
+		$f->label = $this->_('Total number of digits');
+		$f->attr('value', $field->digits); 
+		$f->attr('size', 8); 
+		$inputfields->append($f);
+    
+		if(is_null($field->precision))
+      $field->precision = 2; 
+
+		$f = $this->modules->get('InputfieldInteger');
+		$f->attr('name', 'precision'); 
+		$f->label = $this->_('Number of decimal precision');
+		$f->attr('value', $field->precision); 
+		$f->attr('size', 8); 
+		$inputfields->append($f);
+
+		return $inputfields; 
+	}
+}
