@@ -1,14 +1,14 @@
 <?php
 
 /**
-* ProcessWire Decimal Fieldtype
-*
-* Field that stores a precision floating point number. See
-* https://processwire.com/talk/topic/7542-development-fieldtypefloat-fieldtypedecimal/
-*
-* ProcessWire 2.x 
-* 
-*/
+ * ProcessWire Decimal Fieldtype
+ *
+ * Field that stores a precision floating point number. See
+ * https://processwire.com/talk/topic/7542-development-fieldtypefloat-fieldtypedecimal/
+ *
+ * ProcessWire 2.x 
+ * 
+ */
 
 class FieldtypeDecimal extends Fieldtype
 {
