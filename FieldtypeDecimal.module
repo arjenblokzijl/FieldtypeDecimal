@@ -1,43 +1,43 @@
 <?php
 
 /**
- * ProcessWire Decimal Fieldtype
- *
- * Field that stores a precision floating point number. See
- * https://processwire.com/talk/topic/7542-development-fieldtypefloat-fieldtypedecimal/
- *
- * ProcessWire 2.x 
- * 
- */
+* ProcessWire Decimal Fieldtype
+*
+* Field that stores a precision floating point number. See
+* https://processwire.com/talk/topic/7542-development-fieldtypefloat-fieldtypedecimal/
+*
+* ProcessWire 2.x 
+* 
+*/
 
 class FieldtypeDecimal extends Fieldtype
 {
-	public static function getModuleInfo()
+  public static function getModuleInfo()
   {
-		return array(
-			'title'     => __('Decimal', __FILE__),
-			'summary'   => __('Field that stores a precision floating point (decimal) number', __FILE__),
-			'version'   => 100,
+    return array(
+      'title'     => __('Decimal', __FILE__),
+      'summary'   => __('Field that stores a precision floating point (decimal) number', __FILE__),
+      'version'   => 100,
       'requires'  => 'InputfieldDecimal',
       'author'    => 'Sebastian Forsman',
-		);
-	}
+    );
+  }
 
-	public function ___getCompatibleFieldtypes(Field $field)
+  public function ___getCompatibleFieldtypes(Field $field)
   {
-		$fieldtypes = parent::___getCompatibleFieldtypes($field); 
-		foreach($fieldtypes as $type) {
-			if(	!$type instanceof FieldtypeInteger && 
-				  !$type instanceof FieldtypeFloat &&
+    $fieldtypes = parent::___getCompatibleFieldtypes($field); 
+    foreach($fieldtypes as $type) {
+      if( !$type instanceof FieldtypeInteger && 
+          !$type instanceof FieldtypeFloat &&
           !$type instanceof FieldtypeDecimal && 
-				  $type != 'FieldtypeText') {
+          $type != 'FieldtypeText') {
 
-				$fieldtypes->remove($type); 
-			}
-		}
-		return $fieldtypes; 
-	}
-  
+        $fieldtypes->remove($type); 
+      }
+    }
+    return $fieldtypes; 
+  }
+
   public function init()
   {
     // We need to hook field save to check if our database field is up to date
@@ -57,7 +57,7 @@ class FieldtypeDecimal extends Fieldtype
       }
     });
   }
-  
+
   /**
    * Checks if the table holding this field is up to date and updates it if needed 
    *
@@ -79,7 +79,7 @@ class FieldtypeDecimal extends Fieldtype
       return true;
     }
   }
-  
+
   /**
    * Returns the active type/signature of the field
    *
@@ -102,7 +102,7 @@ class FieldtypeDecimal extends Fieldtype
     
     return $type;
   }
-  
+
   /**
    * Returns the type/signature of the field we should have based on the configuration
    *
@@ -117,8 +117,8 @@ class FieldtypeDecimal extends Fieldtype
       
     return "DECIMAL(".intval($digits).",".intval($precision).")"; // These should always be integers anyway
   }
-  
-	public function sanitizeValue(Page $page, Field $field, $value)
+
+  public function sanitizeValue(Page $page, Field $field, $value)
   {
     // We accept the decimal separator as humans naturally write them
     $value = str_replace(",",".",$value);
@@ -130,49 +130,49 @@ class FieldtypeDecimal extends Fieldtype
       $value = "";
     
     return $value;
-	}
+  }
 
-	public function getInputfield(Page $page, Field $field)
+  public function getInputfield(Page $page, Field $field)
   {
-	  $inputfield = $this->modules->get('InputfieldDecimal');
-		$inputfield->class = $this->className();
+    $inputfield = $this->modules->get('InputfieldDecimal');
+    $inputfield->class = $this->className();
     // TODO: Add total digits
     $inputfield->digits = $field->digits; 
-		$inputfield->precision = $field->precision; 
-		return $inputfield; 
-	}
+    $inputfield->precision = $field->precision; 
+    return $inputfield; 
+  }
 
-	public function getDatabaseSchema(Field $field)
+  public function getDatabaseSchema(Field $field)
   {
-		$schema = parent::getDatabaseSchema($field); 
-		$schema['data'] = 'DECIMAL(12,2) NOT NULL';
-		return $schema;
-	}
-  
+    $schema = parent::getDatabaseSchema($field); 
+    $schema['data'] = 'DECIMAL(12,2) NOT NULL';
+    return $schema;
+  }
+
   public function ___getConfigInputfields(Field $field)
   {
-		$inputfields = parent::___getConfigInputfields($field);
+    $inputfields = parent::___getConfigInputfields($field);
 
-		if(is_null($field->digits))
+    if(is_null($field->digits))
       $field->digits = 12; 
 
       $f = $this->modules->get('InputfieldInteger');
-		$f->attr('name', 'digits'); 
-		$f->label = $this->_('Total number of digits');
-		$f->attr('value', $field->digits); 
-		$f->attr('size', 8); 
-		$inputfields->append($f);
+    $f->attr('name', 'digits'); 
+    $f->label = $this->_('Total number of digits');
+    $f->attr('value', $field->digits); 
+    $f->attr('size', 8); 
+    $inputfields->append($f);
     
-		if(is_null($field->precision))
+    if(is_null($field->precision))
       $field->precision = 2; 
 
-		$f = $this->modules->get('InputfieldInteger');
-		$f->attr('name', 'precision'); 
-		$f->label = $this->_('Number of decimal precision');
-		$f->attr('value', $field->precision); 
-		$f->attr('size', 8); 
-		$inputfields->append($f);
+    $f = $this->modules->get('InputfieldInteger');
+    $f->attr('name', 'precision'); 
+    $f->label = $this->_('Number of decimal precision');
+    $f->attr('value', $field->precision); 
+    $f->attr('size', 8); 
+    $inputfields->append($f);
 
-		return $inputfields; 
-	}
+    return $inputfields; 
+  }
 }
