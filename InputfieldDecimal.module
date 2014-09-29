@@ -1,0 +1,115 @@
+<?php
+
+/**
+ * ProcessWire Decimal Inputfield
+ *
+ * Part of FieldtypeDecimal. See
+ * https://processwire.com/talk/topic/7542-development-fieldtypefloat-fieldtypedecimal/
+ *
+ * ProcessWire 2.x 
+ * 
+ */
+ 
+class InputfieldDecimal extends InputfieldInteger
+{
+  public static function getModuleInfo()
+  {
+    return array(
+      'title'     => __('Decimal', __FILE__),
+      'summary'   => __('Floating point number with exact precision', __FILE__),
+      'version'   => 100,
+      'author'    => 'Sebastian Forsman',
+      'href'      => 'https://github.com/sforsman/InputfieldDecimal',
+      'requires'  => 'FieldtypeDecimal',
+    );
+  }
+
+  public function __construct()
+  {
+    $this->set('digits', 12); 
+    $this->set('precision', 2); 
+    parent::__construct();
+  }
+
+  public function init()
+  {
+    parent::init();
+    $this->attr('step', 'any'); // HTML5 attr required to support decimals with 'number' types
+  }
+  
+  public function getConfigInputfields()
+  {
+    $inputfields = parent::getConfigInputfields();
+    
+    // TODO: Switch min/max vals so they use this class
+
+    return $inputfields; 
+  }
+
+
+  protected function sanitizeValue($value)
+  {
+    // We accept the decimal separator as humans naturally write them
+    $value = str_replace(",",".",$value);
+    
+    // According to wire/core/Fieldtype.php:
+    // "If it can't be sanitized, it should be blanked."
+    // is_numeric() lets weird stuff through, but that's fine for now
+    if(!is_numeric($value))
+      $value = "";
+    
+    return $value; 
+  }
+
+  /**
+   * Returns true if number is in valid range, false if not
+   *
+   * Overriding the function from InputfieldInteger to ensure float types (rather than int types) are used
+   *
+   */
+  protected function isInRange($value)
+  {
+    $inRange = true;
+    $min = $this->attr('min');
+    $max = $this->attr('max');
+    if(strlen("$value")) {
+      if(strlen("$min") && ($this->compareNumbers($value, $min) == -1)) {
+        $inRange = false;
+      }
+      if(strlen("$max") && ($this->compareNumbers($value, $max) == 1)) {
+        $inRange = false;
+      }
+    }
+    return $inRange;
+  }
+  
+  /**
+   * Returns a comparison integer based on the best possible method
+   *
+   * Falls back in to floating-point comparison if no precision library is available
+   *
+   */
+  protected function compareNumbers($a,$b)
+  {
+    if(function_exists("gmp_cmp"))
+    {
+      return gmp_cmp($a,$b);
+    }
+    elseif(function_exists("bccomp"))
+    {
+      return bccomp($a,$b,$this->precision);
+    }
+    else
+    {
+      $a = round($a, $this->precision);
+      $b = round($b, $this->precision);
+      
+      if($a == $b)
+        return 0;
+      elseif($a < $b)
+        return -1;
+      else
+        return 1;
+    }
+  }
+}
