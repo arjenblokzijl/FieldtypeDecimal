@@ -17,9 +17,10 @@ class FieldtypeDecimal extends Fieldtype
     return array(
       'title'     => __('Decimal', __FILE__),
       'summary'   => __('Field that stores a precision floating point (decimal) number', __FILE__),
-      'version'   => 100,
+      'version'   => 101,
       'requires'  => 'InputfieldDecimal',
       'author'    => 'Sebastian Forsman',
+      'href'      => 'https://github.com/sforsman/FieldtypeDecimal',
     );
   }
 
@@ -44,16 +45,15 @@ class FieldtypeDecimal extends Fieldtype
     $this->addHookAfter('ProcessField::fieldSaved', function ($event) {
       $field = $event->arguments(0); 
       
-      if($field->type instanceof self)
+      if($field->type instanceof FieldtypeDecimal)
       {
-        // We could use $this inside here, if we could expect everybody to have PHP 5.4
-        $m = wire('modules')->get(__CLASS__);
+        $m = wire('modules')->get('FieldtypeDecimal');
         
         $result = $m->syncSchema($field); 
         
         // We just add a message if the database was actually modified
         if($result === true)
-          $this->session->message("Database schema was updated");
+          $field->message(__("Database schema was updated"));
       }
     });
   }
@@ -96,7 +96,7 @@ class FieldtypeDecimal extends Fieldtype
     $result = $database->query($query);
     
     if(!$result->rowCount())
-      throw new Exception("Cannot determine the type of the field");
+      throw new Exception(__("Cannot determine the type of the field"));
       
     $type = $result->fetchColumn(1); // Type
     
@@ -113,7 +113,7 @@ class FieldtypeDecimal extends Fieldtype
     $precision = $field->precision;
     
     if(!strlen($digits) or !strlen($precision))
-      throw new Exception("The field isn't configured properly");
+      throw new Exception(__("The field isn't configured properly"));
       
     return "DECIMAL(".intval($digits).",".intval($precision).")"; // These should always be integers anyway
   }
