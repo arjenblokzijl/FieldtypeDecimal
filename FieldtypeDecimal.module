@@ -21,6 +21,7 @@ class FieldtypeDecimal extends Fieldtype
       'requires'  => 'InputfieldDecimal',
       'author'    => 'Sebastian Forsman',
       'href'      => 'https://github.com/sforsman/FieldtypeDecimal',
+      'installs'  => Array('InputfieldDecimal'),
     );
   }
 
