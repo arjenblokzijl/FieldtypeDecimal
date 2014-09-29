@@ -18,7 +18,6 @@ class FieldtypeDecimal extends Fieldtype
       'title'     => __('Decimal', __FILE__),
       'summary'   => __('Field that stores a precision floating point (decimal) number', __FILE__),
       'version'   => 101,
-      'requires'  => 'InputfieldDecimal',
       'author'    => 'Sebastian Forsman',
       'href'      => 'https://github.com/sforsman/FieldtypeDecimal',
       'installs'  => Array('InputfieldDecimal'),
