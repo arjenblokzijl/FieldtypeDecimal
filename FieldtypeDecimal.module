@@ -118,6 +118,20 @@ class FieldtypeDecimal extends Fieldtype
     return "DECIMAL(".intval($digits).",".intval($precision).")"; // These should always be integers anyway
   }
 
+  /**
+  * Add option to determine if 0 is the same as empty
+  *
+  * See: /wire/modules/Fieldtype/FieldtypeFloat.module
+  *
+  */
+  public function isEmptyValue(Field $field, $value) {
+    if(($value === "0" || $value === 0 || $value === "0.0" || $value === 0.0) && $field->zeroNotEmpty) {
+      // when zeroNotEmpty option is set, we don't count a literal "0" is being a blank value
+      return false;
+    }
+    return empty($value);
+  }
+
   public function sanitizeValue(Page $page, Field $field, $value)
   {
     // We accept the decimal separator as humans naturally write them
@@ -172,6 +186,24 @@ class FieldtypeDecimal extends Fieldtype
     $f->attr('value', $field->precision); 
     $f->attr('size', 8); 
     $inputfields->append($f);
+    
+    /**
+    * Let user select if blank and 0 equivalent
+    *
+    * See: /wire/modules/Fieldtype/FieldtypeFloat.module
+    *
+    */    
+    $f = $this->wire('modules')->get('InputfieldRadios');
+    $f->label = $this->_('Are blank and 0 equivalent?');
+    $f->description = $this->_('This affects how ProcessWire matches pages during database find operations.') . ' ' .
+      $this->_('If 0 and blank are equivalent (the Yes option) then a search for **field=0** or **field=""** will produce the same results.') . ' ' .
+      $this->_('If they or not equivalent (the No option) then a search for **field=0** will only match fields containing the value 0, and **field=""** will only match fields with no value.') . ' ' .
+      $this->_('As another example, with the Yes option **field<1** would match both the value 0 and no value, and with the No option it would match only 0.');
+    $f->attr('name', 'zeroNotEmpty');
+    $f->addOption(0, $this->_('Yes - Blank and 0 are equivalent'));
+    $f->addOption(1, $this->_('No - Blank and 0 have different meanings'));
+    $f->attr('value', (int) $field->zeroNotEmpty);
+    $inputfields->add($f);    
 
     return $inputfields; 
   }
